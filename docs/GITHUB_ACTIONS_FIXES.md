@@ -26,6 +26,32 @@ This affects:
 - Binary size checking
 - Artifact upload/download paths
 
+## RP2350 Build Errors
+
+### Problem
+Compilation fails for RP2350 boards (like pico2_w) with errors about conflicting types and undefined structures:
+```
+error: conflicting types for 'save_and_disable_interrupts'
+error: subscripted value is neither array nor pointer nor vector
+```
+
+### Solution
+1. **Remove hardcoded SDK include paths** from `CMakeLists.txt`. The SDK automatically includes the correct platform-specific headers:
+   ```cmake
+   # Remove these hardcoded paths:
+   ${PICO_SDK_PATH}/src/rp2040/boot_stage2/include
+   ${PICO_SDK_PATH}/src/rp2040/hardware_regs/include
+   ${PICO_SDK_PATH}/src/rp2040/hardware_structs/include
+   ```
+
+2. **Fix include order** in source files. Include `hardware/sync.h` before `pico/bootrom.h`:
+   ```c
+   #include "hardware/sync.h"  // Must come first
+   #include "pico/bootrom.h"
+   ```
+
+This allows the project to build for both RP2040 and RP2350 platforms.
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
