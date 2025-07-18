@@ -16,6 +16,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "hardware/sync.h"
 #include "pico/bootrom.h"
 #include "hardware/gpio.h"
 #include "debug.h"

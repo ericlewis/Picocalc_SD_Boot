@@ -5,12 +5,12 @@
  */
 
 #include <stdint.h>
+#include "hardware/sync.h"
 #include "pico/bootrom.h"
 #include "pico/unique_id.h"
 #include "hardware/regs/addressmap.h"
 #include "hardware/regs/m0plus.h"
 #include "hardware/flash.h"
-#include "hardware/sync.h"
 
 // Define PICO_BOOT_STAGE2_SIZE if not already defined
 #ifndef PICO_BOOT_STAGE2_SIZE

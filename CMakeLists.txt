@@ -91,16 +91,6 @@ target_include_directories(picocalc_sd_boot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/include
     ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/src
     ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/libs
-    ${PICO_SDK_PATH}/src/common/boot_uf2_headers/include
-    ${PICO_SDK_PATH}/src/rp2040/boot_stage2/include
-    ${PICO_SDK_PATH}/src/common/boot_uf2/include
-    ${PICO_SDK_PATH}/src/common/pico_stdlib/include
-    ${PICO_SDK_PATH}/src/rp2_common/hardware_gpio/include
-    ${PICO_SDK_PATH}/src/common/pico_base/include
-    ${PICO_SDK_PATH}/src/rp2_common/pico_platform/include
-    ${PICO_SDK_PATH}/src/rp2040/hardware_regs/include
-    ${PICO_SDK_PATH}/src/rp2040/hardware_structs/include
-    ${PICO_SDK_PATH}/src/rp2040/boot_stage2/asminclude
 )
 
 # Enable testing and add tests
