@@ -133,6 +133,30 @@ endif()
 - The custom boot2 contains RP2040-specific register accesses
 - For RP2350, use the SDK's default boot2 which is platform-aware
 
+## Binary Size Check False Positive
+
+### Problem
+The workflow reports:
+```
+Binary size: 2097152 bytes
+ERROR: Bootloader too large! (2097152 > 49152)
+```
+
+### Explanation
+- The `.bin` file is 2MB (2097152 bytes) because it's the **complete flash image**
+- The bootloader is actually placed at the **END** of flash, not the beginning
+- According to the linker script, the bootloader can be up to **140KB**, not 48KB
+- The 2MB file includes empty space before the bootloader
+
+### Temporary Solution
+The size check has been disabled. To properly check bootloader size, we need to:
+1. Extract the actual code size from the ELF segments or UF2 data blocks
+2. Compare against the 140KB limit from the linker script
+3. Or use `picotool info` to get the actual binary size
+
+### Note
+This is not a real issue - the bootloader build is working correctly. The check just needs to be smarter about what it's measuring.
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
