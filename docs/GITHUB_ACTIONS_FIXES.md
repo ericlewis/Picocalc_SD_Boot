@@ -2,6 +2,30 @@
 
 This document lists common issues and fixes for the GitHub Actions CI/CD pipeline.
 
+## Build Artifacts in Wrong Directory
+
+### Problem
+The workflow looks for build artifacts in `build/bootloader/` but they're actually in `build/`:
+```
+ERROR: Could not open 'picocalc_sd_boot.elf'
+```
+
+### Solution
+The executable is defined in the root `CMakeLists.txt`, not in a subdirectory, so all build artifacts are in the `build/` directory. Update all paths from `build/bootloader/` to `build/`:
+
+```yaml
+- name: Create UF2
+  run: |
+    cd build  # Not build/bootloader
+    picotool uf2 convert picocalc_sd_boot.elf picocalc_sd_boot.uf2
+```
+
+This affects:
+- UF2 creation
+- UF2 validation 
+- Binary size checking
+- Artifact upload/download paths
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
