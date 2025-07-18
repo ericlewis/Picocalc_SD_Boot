@@ -75,13 +75,12 @@ if(PICO_PLATFORM STREQUAL "rp2040")
 endif()
 
 # Set linker script based on target platform
-if(PICO_PLATFORM STREQUAL "rp2350")
-    # For now, use SDK default linker script for RP2350
-    # TODO: Fix custom linker script to handle binary info placement
-    # pico_set_linker_script(picocalc_sd_boot ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/memmap_2350.ld)
-else()
+# Only set custom linker script for RP2040
+if(PICO_PLATFORM STREQUAL "rp2040")
     pico_set_linker_script(picocalc_sd_boot ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/memmap_2040.ld)
 endif()
+# For RP2350, use SDK default linker script
+# TODO: Fix custom linker script to handle binary info placement for RP2350
 
 # Link SDK and custom libs
 target_link_libraries(picocalc_sd_boot
