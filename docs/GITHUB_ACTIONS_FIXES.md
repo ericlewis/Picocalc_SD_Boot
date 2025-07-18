@@ -83,6 +83,30 @@ done
 - Consider using compilation database approach
 - Or create a separate workflow for static analysis
 
+## Missing boot/uf2.h Header
+
+### Problem
+Compilation fails with:
+```
+fatal error: boot/uf2.h: No such file or directory
+```
+
+### Solution
+Add `boot_uf2_headers` to the `target_link_libraries` in `CMakeLists.txt`:
+```cmake
+target_link_libraries(picocalc_sd_boot
+    pico_stdlib
+    hardware_flash
+    pico_unique_id
+    boot_uf2_headers  # Add this line
+    i2ckbd
+    lcdspi
+    pico-vfs
+)
+```
+
+The `boot_uf2_headers` is an interface library provided by the Pico SDK that includes the necessary header paths for UF2 structures.
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
