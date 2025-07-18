@@ -74,9 +74,11 @@ if(PICO_PLATFORM STREQUAL "rp2040")
     set(PICO_DEFAULT_BOOT_STAGE2 "" CACHE STRING "")
 endif()
 
-# Set linker script based on target board
-if(PICO_BOARD STREQUAL "pico2")
-    pico_set_linker_script(picocalc_sd_boot ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/memmap_2350.ld)
+# Set linker script based on target platform
+if(PICO_PLATFORM STREQUAL "rp2350")
+    # For now, use SDK default linker script for RP2350
+    # TODO: Fix custom linker script to handle binary info placement
+    # pico_set_linker_script(picocalc_sd_boot ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/memmap_2350.ld)
 else()
     pico_set_linker_script(picocalc_sd_boot ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/memmap_2040.ld)
 endif()
