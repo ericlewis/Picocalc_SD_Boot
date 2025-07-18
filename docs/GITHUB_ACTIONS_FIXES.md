@@ -50,6 +50,13 @@ error: subscripted value is neither array nor pointer nor vector
    #include "pico/bootrom.h"
    ```
 
+3. **Make platform-specific includes conditional**. Some headers only exist for RP2040:
+   ```c
+   #ifndef PICO_RP2350
+   #include "hardware/regs/m0plus.h"  // M0+ is RP2040 only
+   #endif
+   ```
+
 This allows the project to build for both RP2040 and RP2350 platforms.
 
 ## Picotool Build Failure: PICO_SDK_PATH not defined
