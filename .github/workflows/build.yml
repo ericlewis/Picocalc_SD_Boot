@@ -51,6 +51,8 @@ jobs:
         cd picotool
         mkdir build
         cd build
+        # Set PICO_SDK_PATH for picotool build
+        export PICO_SDK_PATH=${{ github.workspace }}/pico-sdk
         cmake ..
         make
         sudo make install
