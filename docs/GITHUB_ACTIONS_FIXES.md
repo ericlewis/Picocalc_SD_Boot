@@ -107,6 +107,32 @@ target_link_libraries(picocalc_sd_boot
 
 The `boot_uf2_headers` is an interface library provided by the Pico SDK that includes the necessary header paths for UF2 structures.
 
+## Custom Boot2 Platform Compatibility
+
+### Problem
+The custom boot2 assembly file fails to compile for RP2350:
+```
+fatal error: hardware/regs/ssi.h: No such file or directory
+```
+
+### Solution
+Make the custom boot2 conditional - only include it for RP2040 builds:
+```cmake
+# Only use custom boot2 for RP2040, use SDK default for RP2350
+if(PICO_PLATFORM STREQUAL "rp2040")
+    target_sources(picocalc_sd_boot PRIVATE bootloader/boot2/boot2_custom.S)
+    # Disable SDK boot2
+    set(PICO_DEFAULT_BOOT_STAGE2_FILE "" CACHE STRING "")
+    set(PICO_DEFAULT_BOOT_STAGE2 "" CACHE STRING "")
+endif()
+```
+
+### Background
+- RP2040 uses SSI (Synchronous Serial Interface) for flash access
+- RP2350 uses QMI (QSPI Memory Interface) instead
+- The custom boot2 contains RP2040-specific register accesses
+- For RP2350, use the SDK's default boot2 which is platform-aware
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
