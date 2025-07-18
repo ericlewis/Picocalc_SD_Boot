@@ -64,8 +64,15 @@ add_executable(picocalc_sd_boot
     bootloader/src/key_event.c
     bootloader/src/text_directory_ui.c
     bootloader/src/ff_minimal_unicode.c
-    bootloader/boot2/boot2_custom.S
 )
+
+# Only use custom boot2 for RP2040, use SDK default for RP2350
+if(PICO_PLATFORM STREQUAL "rp2040")
+    target_sources(picocalc_sd_boot PRIVATE bootloader/boot2/boot2_custom.S)
+    # Disable SDK boot2
+    set(PICO_DEFAULT_BOOT_STAGE2_FILE "" CACHE STRING "")
+    set(PICO_DEFAULT_BOOT_STAGE2 "" CACHE STRING "")
+endif()
 
 # Set linker script based on target board
 if(PICO_BOARD STREQUAL "pico2")
