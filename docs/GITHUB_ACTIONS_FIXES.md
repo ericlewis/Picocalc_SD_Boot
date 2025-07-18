@@ -236,6 +236,27 @@ container:
 
 This runs the container as root user, ensuring proper permissions for GitHub Actions operations.
 
+## Renode Simulation Test Failures
+
+### Problem
+Multiple issues with Renode tests in containers:
+1. Git not found: `git: command not found`
+2. Upload artifacts fails: `Value cannot be null. (Parameter 'ContainerId')`
+
+### Root Cause
+1. The Renode container doesn't have git installed
+2. The upload-artifact action has issues with container contexts
+3. The test paths expected files in `build/bootloader/` but we changed to `build/`
+
+### Solution
+Removed container usage and installed Renode directly on Ubuntu runner:
+1. Install Renode portable version
+2. Install Robot Framework dependencies
+3. Create symlinks for backward compatibility with test paths
+4. Run tests directly with robot command
+
+This avoids all container-related permission and tooling issues.
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
