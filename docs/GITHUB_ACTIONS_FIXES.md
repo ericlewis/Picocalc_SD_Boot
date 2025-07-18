@@ -157,6 +157,31 @@ The size check has been disabled. To properly check bootloader size, we need to:
 ### Note
 This is not a real issue - the bootloader build is working correctly. The check just needs to be smarter about what it's measuring.
 
+## RP2350 Linker Script Issue
+
+### Problem
+RP2350 builds fail with:
+```
+Binary info must be in first 256 bytes of the binary
+```
+
+### Root Cause
+1. The linker script selection was checking `PICO_BOARD == "pico2"` but the board name is `pico2_w`
+2. The custom linker script places the bootloader at the END of flash (high memory)
+3. RP2350 requires binary info to be in the first 256 bytes from the logical start
+4. This conflicts with high-memory placement
+
+### Temporary Solution
+- Fixed platform detection: check `PICO_PLATFORM == "rp2350"` instead of board name
+- Use SDK default linker script for RP2350 (places code at start of flash)
+- Keep custom linker script for RP2040 only
+
+### TODO
+To use high-memory bootloader on RP2350, need to:
+1. Modify linker script to place binary info at flash start
+2. Or disable binary info for bootloader builds
+3. Or use a two-stage approach with a small stub at flash start
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem
