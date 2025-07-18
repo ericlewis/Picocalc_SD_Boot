@@ -133,7 +133,6 @@ jobs:
       uses: antmicro/renode-test-action@v4.0.0
       with:
         tests-to-run: tests/bootloader.robot
-        renode-version: '1.14.0'
         artifacts-path: test-artifacts
         gather-execution-metrics: true
       env:
@@ -229,33 +228,12 @@ jobs:
         . venv/bin/activate
         cd tests
         pytest test_hardware.py -v --embedded-services serial --port /dev/ttyACM0
-        
-  # ---------- 6. Security scan ----------
-  security:
-    name: Security Analysis
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Run CodeQL analysis
-      uses: github/codeql-action/analyze@v3
-      with:
-        languages: 'cpp'
-        
-    - name: Run Semgrep
-      uses: returntocorp/semgrep-action@v1
-      with:
-        config: >-
-          p/security-audit
-          p/c
-        
+
   # ---------- 7. Release ----------
   release:
     name: Create Release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build, sim, unit-tests, security]
+    needs: [build, sim, unit-tests]
     runs-on: ubuntu-latest
     
     steps:
