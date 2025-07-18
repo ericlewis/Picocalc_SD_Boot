@@ -210,6 +210,32 @@ RP2350 UF2 files fail validation with hundreds of block numbering errors:
 ### Note
 The UF2 files are actually valid - `picotool info` reads them correctly. This was just a validation script issue.
 
+## Container Permission Error: EACCES in Post-job Cleanup
+
+### Problem
+Post-job cleanup fails with permission error:
+```
+Error: EACCES: permission denied, open '/__w/_temp/_runner_file_commands/save_state_...'
+```
+
+### Root Cause
+When using Docker containers in GitHub Actions, the checkout action tries to save state
+but doesn't have write permissions to the runner's temp directory.
+
+### Solution
+Changed container configuration from:
+```yaml
+container: antmicro/renode:latest
+```
+To:
+```yaml
+container:
+  image: antmicro/renode:latest
+  options: --user root
+```
+
+This runs the container as root user, ensuring proper permissions for GitHub Actions operations.
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem

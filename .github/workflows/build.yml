@@ -129,7 +129,9 @@ jobs:
     name: Renode Simulation Tests
     needs: build
     runs-on: ubuntu-latest
-    container: antmicro/renode:latest
+    container: 
+      image: antmicro/renode:latest
+      options: --user root
     strategy:
       matrix:
         board: [pico, pico_w]  # pico2_w not yet supported in Renode
