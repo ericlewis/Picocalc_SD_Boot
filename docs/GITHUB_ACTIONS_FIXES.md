@@ -59,6 +59,30 @@ error: subscripted value is neither array nor pointer nor vector
 
 This allows the project to build for both RP2040 and RP2350 platforms.
 
+## Clang-tidy Integration Issue
+
+### Problem
+The HorstBaerbel/action-clang-tidy@master action fails with:
+```
+Error: Can't find 'action.yml', 'action.yaml' or 'Dockerfile' under 
+'/home/runner/work/Picocalc_SD_Boot/Picocalc_SD_Boot/action-clang-tidy/use_existing_build'
+```
+
+### Temporary Solution
+The clang-tidy step has been commented out in the workflow. To run clang-tidy locally:
+```bash
+find bootloader/src -name '*.c' -o -name '*.cpp' | while read file; do
+  clang-tidy "$file" -- -I bootloader/include -I pico-vfs/include \
+    -I pico-sdk/src/common/pico_stdlib_headers/include \
+    -I build/generated/pico_base -std=gnu11
+done
+```
+
+### TODO
+- Investigate proper clang-tidy integration with CMake cross-compilation
+- Consider using compilation database approach
+- Or create a separate workflow for static analysis
+
 ## Picotool Build Failure: PICO_SDK_PATH not defined
 
 ### Problem

@@ -58,20 +58,24 @@ jobs:
         sudo make install
         cd ../..
         
-    - name: Run clang-tidy
-      uses: HorstBaerbel/action-clang-tidy@master
-      if: matrix.board == 'pico'  # Run only once
-      with:
-        scandir: './bootloader'
-        builddir: './build'
-        excludedirs: './pico-sdk'
-        
     - name: Configure
       run: |
         cmake -B build -G Ninja \
           -DPICO_BOARD=${{ matrix.board }} \
           -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} \
           -DPICO_SDK_PATH=${PWD}/pico-sdk
+          
+    # TODO: Fix clang-tidy integration
+    # - name: Run clang-tidy
+    #   if: matrix.board == 'pico'  # Run only once
+    #   run: |
+    #     # Install clang-tidy if not already available
+    #     which clang-tidy || sudo apt-get install -y clang-tidy
+    #     # Run clang-tidy on source files
+    #     find bootloader/src -name '*.c' -o -name '*.cpp' | while read file; do
+    #       echo "Checking $file"
+    #       clang-tidy "$file" -- -I bootloader/include -I pico-vfs/include -I pico-sdk/src/common/pico_stdlib_headers/include -I build/generated/pico_base -std=gnu11
+    #     done
           
     - name: Build bootloader
       run: |
