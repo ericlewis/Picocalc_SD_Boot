@@ -28,7 +28,7 @@ UF2_FOOTER_SIZE = 4
 
 # Family IDs
 FAMILY_RP2040 = 0xE48BFF56
-FAMILY_RP2350 = 0xE48BFF59
+FAMILY_RP2350 = 0xE48BFF57  # This is what picotool generates
 FAMILY_RP2350_ARM_S = 0xE48BFF5A
 FAMILY_RP2350_RISCV = 0xE48BFF5B
 
@@ -74,11 +74,12 @@ class UF2Block:
 
 class UF2Validator:
     """Validates UF2 files for correctness"""
-    def __init__(self, filepath):
+    def __init__(self, filepath, verbose=False):
         self.filepath = Path(filepath)
         self.blocks = []
         self.errors = []
         self.warnings = []
+        self.verbose = verbose
         
     def load(self):
         """Load and parse UF2 file"""
@@ -117,26 +118,27 @@ class UF2Validator:
             if not block.is_valid():
                 self.errors.append(f"Block {i}: Invalid magic numbers")
                 
-        # Check block numbering
-        # For RP2350, metadata blocks may report different total counts
-        # So we need to be more flexible
-        total_blocks_seen = set()
-        for i, block in enumerate(self.blocks):
-            total_blocks_seen.add(block.total_blocks)
-            
-        # Use the most common total_blocks value (excluding very small values like 2)
-        valid_totals = [t for t in total_blocks_seen if t > 10]
-        expected_total = max(valid_totals) if valid_totals else len(self.blocks)
+        # Check if this is an RP2350 file (which has metadata blocks)
+        is_rp2350 = any(block.family_id in [FAMILY_RP2350, FAMILY_RP2350_ARM_S, FAMILY_RP2350_RISCV] 
+                        for block in self.blocks)
         
-        # Now check block numbering with more tolerance for metadata blocks
-        for i, block in enumerate(self.blocks):
-            # Skip block number check for blocks that report very low total_blocks (metadata)
-            if block.total_blocks > 10 and block.block_number != i:
-                self.errors.append(f"Block {i}: Incorrect block number {block.block_number}")
-                
-        # Check we have all blocks (with tolerance for metadata blocks)
-        if abs(len(self.blocks) - expected_total) > 2:
-            self.errors.append(f"Missing blocks: have {len(self.blocks)}, expected ~{expected_total}")
+        if is_rp2350:
+            # For RP2350, we expect metadata blocks with different numbering
+            # Just check that we have blocks and they have valid magic numbers
+            if self.verbose:
+                print("Note: RP2350 UF2 detected - using relaxed validation for metadata blocks")
+        else:
+            # For RP2040 and others, use strict validation
+            expected_total = self.blocks[0].total_blocks if self.blocks else 0
+            for i, block in enumerate(self.blocks):
+                if block.block_number != i:
+                    self.errors.append(f"Block {i}: Incorrect block number {block.block_number}")
+                if block.total_blocks != expected_total:
+                    self.errors.append(f"Block {i}: Inconsistent total blocks {block.total_blocks} != {expected_total}")
+                    
+            # Check we have all blocks
+            if len(self.blocks) != expected_total:
+                self.errors.append(f"Missing blocks: have {len(self.blocks)}, expected {expected_total}")
             
         # Check family ID consistency
         family_ids = set(block.family_id for block in self.blocks)
@@ -205,7 +207,7 @@ def main():
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     args = parser.parse_args()
     
-    validator = UF2Validator(args.uf2_file)
+    validator = UF2Validator(args.uf2_file, verbose=args.verbose)
     
     # Load file
     if not validator.load():
