@@ -79,6 +79,7 @@ target_link_libraries(picocalc_sd_boot
     pico_stdlib
     hardware_flash
     pico_unique_id
+    boot_uf2_headers
     i2ckbd
     lcdspi
     pico-vfs
