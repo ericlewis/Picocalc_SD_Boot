@@ -79,7 +79,7 @@ jobs:
         
     - name: Create UF2
       run: |
-        cd build/bootloader
+        cd build
         # Generate UF2 if not already created
         if [ ! -f picocalc_sd_boot.uf2 ]; then
           picotool uf2 convert picocalc_sd_boot.elf picocalc_sd_boot.uf2
@@ -87,13 +87,13 @@ jobs:
         
     - name: Validate UF2
       run: |
-        cd build/bootloader
+        cd build
         picotool info picocalc_sd_boot.uf2 --all
-        python3 ../../tools/check_uf2_crc32.py picocalc_sd_boot.uf2 --verbose
+        python3 ../tools/check_uf2_crc32.py picocalc_sd_boot.uf2 --verbose
         
     - name: Check binary size
       run: |
-        cd build/bootloader
+        cd build
         SIZE=$(stat -c%s picocalc_sd_boot.bin)
         echo "Binary size: $SIZE bytes"
         # Fail if bootloader is too large (>48KB for safety)
@@ -107,8 +107,8 @@ jobs:
       with:
         name: bootloader-${{ matrix.board }}
         path: |
-          build/bootloader/picocalc_sd_boot.*
-          build/bootloader/*.map
+          build/picocalc_sd_boot.*
+          build/*.map
         retention-days: 7
 
   # ---------- 2. Deterministic simulation ----------
@@ -129,7 +129,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: bootloader-${{ matrix.board }}
-        path: build/bootloader
+        path: build
         
     - name: Run Renode tests
       uses: antmicro/renode-test-action@v4.0.0
@@ -217,7 +217,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: bootloader-pico
-        path: build/bootloader
+        path: build
         
     - name: Set up Python environment
       run: |
