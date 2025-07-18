@@ -9,7 +9,9 @@
 #include "pico/bootrom.h"
 #include "pico/unique_id.h"
 #include "hardware/regs/addressmap.h"
+#ifndef PICO_RP2350
 #include "hardware/regs/m0plus.h"
+#endif
 #include "hardware/flash.h"
 
 // Define PICO_BOOT_STAGE2_SIZE if not already defined
