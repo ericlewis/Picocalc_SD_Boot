@@ -187,6 +187,8 @@ jobs:
         renode --disable-gui -P 4321 --robot-server-port 9999 &
         RENODE_PID=$!
         sleep 5  # Give server time to start
+        # Test robot server connection
+        nc -zv localhost 9999 || echo "Robot server not responding on port 9999"
         cd tests
         robot --variable RENODE_PORT:9999 --outputdir ../test-artifacts bootloader.robot || echo "Tests failed but continuing"
         kill $RENODE_PID || true
