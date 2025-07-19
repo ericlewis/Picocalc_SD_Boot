@@ -26,7 +26,8 @@ Setup
     
 Create Machine RP2040
     [Arguments]    ${name}=rp2040
-    Execute Command    include @${CURDIR}/rp2040.resc
+    # The rp2040.resc script will be executed from the tests directory
+    Execute Command    include @rp2040.resc
     
 Load Bootloader
     [Arguments]    ${binary}=${BOOTLOADER_BIN}
