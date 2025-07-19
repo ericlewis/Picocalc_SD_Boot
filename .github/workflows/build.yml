@@ -154,8 +154,11 @@ jobs:
       run: |
         wget https://builds.renode.io/renode-latest.linux-portable.tar.gz
         tar -xzf renode-latest.linux-portable.tar.gz
-        export PATH=$PWD/renode_*_portable:$PATH
-        renode --version
+        RENODE_DIR=$(ls -d renode_*_portable)
+        echo "RENODE_PATH=$PWD/$RENODE_DIR" >> $GITHUB_ENV
+        echo "$PWD/$RENODE_DIR" >> $GITHUB_PATH
+        ls -la $RENODE_DIR/
+        $RENODE_DIR/renode --version
       
     - name: Download artifacts
       uses: actions/download-artifact@v4
@@ -176,9 +179,10 @@ jobs:
         
     - name: Run Renode tests
       run: |
-        export PATH=$PWD/renode_*_portable:$PATH
         # Run Renode in headless mode for CI
         export RENODE_OPTS="--disable-gui"
+        echo "Renode version:"
+        renode --version
         cd tests
         robot --outputdir ../test-artifacts bootloader.robot || echo "Tests failed but continuing"
       env:
