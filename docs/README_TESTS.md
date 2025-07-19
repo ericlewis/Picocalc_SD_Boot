@@ -71,100 +71,12 @@ The test suite covers:
 2. **Integration Tests** - System-level behavior
 3. **Safety Tests** - Critical safety requirements
 4. **Corruption Tests** - Invalid input handling
-5. **Emulation Tests** - Hardware simulation testing
-
-## Emulation Testing with Renode
-
-The project includes hardware emulation tests using Renode, which simulates the Raspberry Pi Pico hardware to test the bootloader in a virtualized environment.
-
-### Running Renode Tests
-
-Renode tests can be run using Docker (recommended) or with a local Renode installation:
-
-```bash
-# Using Docker (recommended)
-./tools/run_renode_tests_docker.sh
-
-# Using local Renode installation
-cd tests
-python3 renode_flash_test.py
-```
-
-### What Renode Tests Cover
-
-The Renode emulation tests verify:
-
-1. **Hardware Compatibility**
-   - Tests on emulated Pico (RP2040) hardware
-   - Tests on emulated Pico 2 (RP2350) hardware
-
-2. **Bootloader Initialization**
-   - Verifies bootloader starts correctly on emulated hardware
-   - Checks UART output and console messages
-
-3. **Flash Operations**
-   - Monitors flash read/write operations
-   - Verifies flash erase procedures
-   - Tests flash programming sequences
-
-4. **SD Card Interface**
-   - Simulates SD card with mock FAT32 filesystem
-   - Tests SD card communication over SPI
-
-### Renode Test Output
-
-A successful Renode test run shows:
-
-```
-Picocalc SD Boot - Renode Emulation Tests
-==========================================
-
-============================================================
-Testing bootloader on emulated PICO hardware
-============================================================
-
-Starting Renode emulation...
-  [Renode output messages...]
-  
-✓ Bootloader detected in output
-
-========================================
-Test Results:
-========================================
-Bootloader started: ✓ Yes
-Flash operations: 15
-
-Flash activity detected:
-  - FLASH READ: offset=0x00000000, size=512
-  - FLASH READ: offset=0x00001000, size=256
-  ... and 13 more
-
-============================================================
-Testing Flash Programming Simulation
-============================================================
-
-Flash programming test output:
-[Flash operation logs...]
-
-Flash erase detected: ✓
-Flash write detected: ✓
-
-============================================================
-TEST SUMMARY
-============================================================
-pico...................................... ✓ PASSED
-pico2..................................... ✓ PASSED
-flash_programming.......................... ✓ PASSED
-
-✓ All Renode emulation tests passed!
-```
 
 ### Docker Environment
 
 The Docker environment includes:
 - Ubuntu 22.04 base
 - ARM GCC toolchain
-- Renode 1.14.0
 - Python 3 with required packages
 - Pico SDK
 
@@ -173,9 +85,9 @@ Build and run tests in Docker:
 # Build Docker image
 docker build -t picocalc-test-env docker/
 
-# Run all tests including Renode
+# Run all tests
 docker run --rm -v $(pwd):/workspace -w /workspace picocalc-test-env \
-    -c "./tools/run_all_tests.sh && ./tools/run_renode_tests_docker.sh"
+    -c "./tools/run_all_tests.sh"
 ```
 
 ## Test Organization

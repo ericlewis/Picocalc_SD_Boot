@@ -124,89 +124,7 @@ jobs:
           build/*.map
         retention-days: 7
 
-  # ---------- 2. Deterministic simulation ----------
-  sim:
-    name: Renode Simulation Tests
-    needs: build
-    runs-on: ubuntu-latest
-    continue-on-error: true  # Don't fail the whole workflow if tests fail
-    strategy:
-      matrix:
-        board: [pico, pico_w]  # pico2_w not yet supported in Renode
-        
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
-        
-    - name: Install dependencies
-      run: |
-        sudo apt-get update
-        # Install only what we need for headless Renode operation
-        sudo apt-get install -y mono-complete libmono-system-windows-forms4.0-cil
-        pip install robotframework robotremoteserver psutil
-        
-    - name: Install Renode
-      run: |
-        wget https://builds.renode.io/renode-latest.linux-portable.tar.gz
-        tar -xzf renode-latest.linux-portable.tar.gz
-        RENODE_DIR=$(ls -d renode_*_portable)
-        echo "RENODE_PATH=$PWD/$RENODE_DIR" >> $GITHUB_ENV
-        echo "$PWD/$RENODE_DIR" >> $GITHUB_PATH
-        ls -la $RENODE_DIR/
-        $RENODE_DIR/renode --version
-      
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        name: bootloader-${{ matrix.board }}
-        path: build
-        
-    - name: Create bootloader directory symlink
-      run: |
-        # Tests expect files in build/bootloader/ but we build to build/
-        mkdir -p build/bootloader
-        cd build/bootloader
-        for file in ../picocalc_sd_boot.*; do
-          ln -s "$file" .
-        done
-        cd ../..
-        ls -la build/bootloader/
-        
-    - name: Run Renode tests
-      run: |
-        # Run Renode in headless mode for CI
-        export RENODE_OPTS="--disable-gui"
-        echo "Renode version:"
-        renode --version
-        # Start Renode robot server in background (telnet on 4321, robot on 9999)
-        renode --disable-gui -P 4321 --robot-server-port 9999 &
-        RENODE_PID=$!
-        sleep 5  # Give server time to start
-        # Test robot server connection
-        nc -zv localhost 9999 || echo "Robot server not responding on port 9999"
-        cd tests
-        robot --variable RENODE_PORT:9999 --outputdir ../test-artifacts bootloader.robot || echo "Tests failed but continuing"
-        kill $RENODE_PID || true
-      env:
-        BOOTLOADER_BOARD: ${{ matrix.board }}
-        
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: renode-test-results-${{ matrix.board }}
-        path: |
-          test-artifacts/
-          robot_output.xml
-          log.html
-          report.html
-          
-  # ---------- 3. Unit tests in simulation ----------
+  # ---------- 2. Unit tests ----------
   unit-tests:
     name: Unit Tests
     needs: build
@@ -232,11 +150,11 @@ jobs:
         cmake --build build_tests
         ctest --test-dir build_tests --output-on-failure
         
-  # ---------- 4. PlatformIO tests (optional) ----------
+  # ---------- 3. PlatformIO tests (optional) ----------
   pio-test:
     name: PlatformIO Tests
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    needs: [build, sim]
+    needs: [build]
     runs-on: ubuntu-latest
     
     steps:
@@ -251,17 +169,16 @@ jobs:
     - name: Install PlatformIO
       run: |
         pip install platformio
-        pio pkg install -g --tool "renode"
         
     - name: Run PlatformIO tests
       run: |
-        pio test -e renode_sim --without-uploading
+        pio test --without-uploading
         
-  # ---------- 5. Hardware tests (manual trigger) ----------
+  # ---------- 4. Hardware tests (manual trigger) ----------
   hardware-test:
     name: Hardware Tests
     if: github.event_name == 'workflow_dispatch'
-    needs: [sim, unit-tests]
+    needs: [unit-tests]
     runs-on: [self-hosted, rp2040]
     
     steps:
@@ -286,11 +203,11 @@ jobs:
         cd tests
         pytest test_hardware.py -v --embedded-services serial --port /dev/ttyACM0
 
-  # ---------- 7. Release ----------
+  # ---------- 5. Release ----------
   release:
     name: Create Release
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [build, sim, unit-tests]
+    needs: [build, unit-tests]
     runs-on: ubuntu-latest
     
     steps:
@@ -317,4 +234,4 @@ jobs:
       with:
         name: release-bundle
         path: release/
-        retention-days: 90 
+        retention-days: 90

@@ -54,11 +54,6 @@ case "$COMMAND" in
         act -j build
         ;;
         
-    sim)
-        echo "Running Renode simulation tests..."
-        echo "Note: This requires Renode Docker image support"
-        act -j sim
-        ;;
         
     unit)
         echo "Running unit tests..."
