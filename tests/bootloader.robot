@@ -2,13 +2,13 @@
 Library           OperatingSystem
 Library           Collections
 Library           String
-Library           Remote    http://localhost:${RENODE_PORT:-9999}
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Setup        Reset Emulation
 Test Teardown     Test Teardown
 
 *** Variables ***
+${RENODE_PORT}               9999
 ${UART}                       sysbus.uart0
 ${BOOTLOADER_BIN}            ${CURDIR}/../build/bootloader/picocalc_sd_boot.bin
 ${BOOTLOADER_ELF}            ${CURDIR}/../build/bootloader/picocalc_sd_boot.elf
@@ -21,6 +21,7 @@ ${VERSION_PATTERN}           v\\d+\\.\\d+\\.\\d+
 
 *** Keywords ***
 Setup
+    Import Library    Remote    http://localhost:${RENODE_PORT}
     Create Machine RP2040
     
 Create Machine RP2040

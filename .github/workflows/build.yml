@@ -183,8 +183,8 @@ jobs:
         export RENODE_OPTS="--disable-gui"
         echo "Renode version:"
         renode --version
-        # Start Renode robot server in background
-        renode --disable-gui -P 9999 --robot-server-port 9999 &
+        # Start Renode robot server in background (telnet on 4321, robot on 9999)
+        renode --disable-gui -P 4321 --robot-server-port 9999 &
         RENODE_PID=$!
         sleep 5  # Give server time to start
         cd tests
