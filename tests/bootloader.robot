@@ -9,6 +9,7 @@ Test Teardown     Test Teardown
 
 *** Variables ***
 ${RENODE_PORT}               9999
+${PLATFORM_FILE_RP2040}      ${CURDIR}/platforms/rp2040_basic.repl
 ${UART}                       sysbus.uart0
 ${BOOTLOADER_BIN}            ${CURDIR}/../build/bootloader/picocalc_sd_boot.bin
 ${BOOTLOADER_ELF}            ${CURDIR}/../build/bootloader/picocalc_sd_boot.elf
@@ -26,6 +27,8 @@ Setup
     
 Create Machine RP2040
     [Arguments]    ${name}=rp2040
+    Execute Command    mach create ${name}
+    Execute Command    machine LoadPlatformDescription @${PLATFORM_FILE_RP2040}
     # The Renode server runs from the project root, so we need to provide the path to the script
     Execute Command    include @tests/rp2040.resc
     

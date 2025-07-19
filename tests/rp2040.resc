@@ -1,13 +1,10 @@
 using sysbus
-mach create "rp2040"
-
-# Load our local platform description instead of looking in Renode's platform directory
-machine LoadPlatformDescription @platforms/rp2040_basic.repl
 
 # Configure CPU
 cpu0 IsHalted false
 
 # Load the bootloader binary if provided
+# This path is relative to the tests/ directory, where the script is located
 $bin?=@../build/bootloader/picocalc_sd_boot.elf
 sysbus LoadELF $bin
 
