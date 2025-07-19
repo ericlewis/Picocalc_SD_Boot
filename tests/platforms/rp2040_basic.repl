@@ -1,5 +1,6 @@
-// Simplified Raspberry Pi Pico (RP2040) Platform Description for Renode
-// Uses generic peripherals that are available in standard Renode
+// Raspberry Pi Pico (RP2040) Platform Description for Renode
+
+using "peripherals/resets.repl"
 
 flash: Memory.MappedMemory @ sysbus 0x10000000
     size: 0x1000000  // 16MB flash
@@ -14,32 +15,51 @@ cpu0: CPU.CortexM @ sysbus
 nvic0: IRQControllers.NVIC @ sysbus 0xE000E000
     -> cpu0@0
 
-// Use generic UART instead of RP2040-specific
-uart0: UART.PL011 @ sysbus 0x40034000
+uart0: UART.RP2040_UART @ sysbus 0x40034000
     -> nvic0@20
 
-// Timer using generic Cortex-M SysTick
-systick: CPU.ARMv7M_SysTick @ sysbus 0xE000E010
-    parentCPU: cpu0
-    -> nvic0@15
-
-// Generic SPI controllers
-spi0: SPI.STM32SPI @ sysbus 0x4003c000
+spi0: SPI.RP2040_SPI @ sysbus 0x4003c000
     -> nvic0@18
 
-spi1: SPI.STM32SPI @ sysbus 0x40040000
+spi1: SPI.RP2040_SPI @ sysbus 0x40040000
     -> nvic0@19
 
-// Generic GPIO
-gpio0: GPIOPort.STM32_GPIOPort @ sysbus 0x40014000
-    numberOfAFs: 1
+gpio0: GPIOPort.RP2040_GPIO @ sysbus 0x40014000
+    numberOfPins: 30
 
-// Tag memory regions
-sysbus:
-    init:
-        Tag <0x40000000 0x1000> "APB_BRIDGE"
-        Tag <0x40004000 0x1000> "SYSINFO"
-        Tag <0x40008000 0x1000> "CLOCKS" 
-        Tag <0x4000c000 0x1000> "RESETS"
-        Tag <0x40058000 0x1000> "WATCHDOG"
-        Tag <0x50000000 0x10000000> "AHB_LITE" 
+dma: DMA.RP2040_DMA @ sysbus 0x50000000
+    -> nvic0@11
+
+syscfg: Miscellaneous.RP2040_SYSCFG @ sysbus 0x40004000
+
+clocks: Miscellaneous.RP2040_Clocks @ sysbus 0x40008000
+    pllSys: pll_sys
+    pllUsb: pll_usb
+    rosc: rosc
+    xosc: xosc
+    
+pll_sys: Miscellaneous.RP2040_PLL @ sysbus 0x40028000
+
+pll_usb: Miscellaneous.RP2040_PLL @ sysbus 0x4002c000
+
+xosc: Miscellaneous.RP2040_XOSC @ sysbus 0x40024000
+
+rosc: Miscellaneous.RP2040_ROSC @ sysbus 0x40060000
+
+resets: Resets @ sysbus 0x4000c000
+    Reset(p: uart0, b: 22)
+    Reset(p: spi0, b: 16)
+    Reset(p: spi1, b: 17)
+    Reset(p: pll_sys, b: 12)
+    Reset(p: pll_usb, b: 13)
+    Reset(p: pads_qspi, b: 9)
+    Reset(p: pads_bank0, b: 8)
+    Reset(p: jtag, b: 7)
+    Reset(p: io_qspi, b: 6)
+    Reset(p: io_bank0, b: 5)
+    Reset(p: busctrl, b: 2)
+
+pads_bank0: GPIOPort.RP2040_Pads @ sysbus 0x4001c000
+pads_qspi: GPIOPort.RP2040_Pads @ sysbus 0x40020000
+busctrl: Miscellaneous.RP2040_BUSCTRL @ sysbus 0x40030000
+jtag: Miscellaneous.RP2040_JTAG @ sysbus 0x40064000 
