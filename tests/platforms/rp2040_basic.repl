@@ -32,7 +32,6 @@ spi1: SPI.STM32SPI @ sysbus 0x40040000
 // Generic GPIO
 gpio0: GPIOPort.STM32_GPIOPort @ sysbus 0x40014000
     numberOfAFs: 1
-    [0-29] -> nvic0@13
 
 // Tag memory regions
 sysbus:
