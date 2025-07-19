@@ -24,6 +24,7 @@
 #include "proginfo.h"
 #include "text_directory_ui.h"
 #include "uf2.h"
+#include "error_codes.h"
 
 extern int __logical_binary_start;
 
@@ -105,7 +106,7 @@ static inline int page_index(uint32_t addr)
   return ((addr - XIP_BASE) % FLASH_SECTOR_SIZE) / FLASH_PAGE_SIZE;
 }
 
-bool load_application_from_uf2(const char* filename)
+bootloader_error_t load_application_from_uf2(const char* filename)
 {
   uint8_t* buf = _block_buf;
 
@@ -116,7 +117,10 @@ bool load_application_from_uf2(const char* filename)
   if (fp == NULL)
   {
     DEBUG_PRINT("open %s fail: %s\n", filename, strerror(errno));
-    return false;
+    if (errno == ENOENT) {
+      return ERR_UF2_FILE_NOT_FOUND;
+    }
+    return ERR_SD_READ_FAILED;
   }
 
   // Mark flash operation as incomplete (recovery marker)
@@ -211,17 +215,17 @@ bool load_application_from_uf2(const char* filename)
   // Empty program file or not for this platform
   if (s.num_blks == 0)
   {
-    return false;
+    return ERR_UF2_INVALID_SIZE;
   }
 
   if (!check_EOT(&s))
   {
-    return false;
+    return ERR_UF2_VERIFY_FAILED;
   }
 
   set_prog_info(s.prog_addr + BOOT2_SIZE, s.num_blks * FLASH_PAGE_SIZE, strrchr(filename, '/') + 1);
 
-  return true;
+  return ERR_SUCCESS;
 }
 
 static bool check_generic_block(const struct uf2_block* b)

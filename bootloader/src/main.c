@@ -36,6 +36,7 @@
 #include "proginfo.h"
 #include "uf2.h"
 #include "atu.h"
+#include "error_codes.h"
 
 
 // Vector and RAM offset
@@ -55,32 +56,40 @@ bool sd_card_inserted(void)
     return (bool)status_flag;
 }
 
-bool fs_init() {
+bootloader_error_t fs_mount_init() {
     blockdevice_t *sd = blockdevice_sd_create(spi0,
-            PICO_DEFAULT_SPI_CSN_PIN,
-            PICO_DEFAULT_SPI_SCK_PIN,
-            PICO_DEFAULT_SPI_TX_PIN,
-            PICO_DEFAULT_SPI_RX_PIN,
+            PICO_DEFAULT_SPI_TX_PIN,  // mosi
+            PICO_DEFAULT_SPI_RX_PIN,  // miso
+            PICO_DEFAULT_SPI_SCK_PIN, // sclk
+            PICO_DEFAULT_SPI_CSN_PIN, // cs
             25 * 1000 * 1000, // 25MHz
             true);
 
+    if (!sd) {
+        return ERR_SD_INIT_FAILED;
+    }
+
     filesystem_t *fat = filesystem_fat_create();
+    if (!fat) {
+        return ERR_OUT_OF_MEMORY;
+    }
+
     int err = fs_mount("/", fat, sd);
     if (err) {
-        printf("Failed to mount SD card: %d\n", err);
-        printf("Formatting SD card...\n");
+        display_error(ERR_SD_MOUNT_FAILED);
+        DEBUG_PRINT("Mount failed with error %d, attempting format...\n", err);
+        
         err = fs_format(fat, sd);
         if (err) {
-            printf("Failed to format SD card: %d\n", err);
-            return false;
+            return ERR_SD_FORMAT_FAILED;
         }
+        
         err = fs_mount("/", fat, sd);
         if (err) {
-            printf("Failed to mount SD card after formatting: %d\n", err);
-            return false;
+            return ERR_SD_MOUNT_FAILED;
         }
     }
-    return true;
+    return ERR_SUCCESS;
 }
 
 // This function jumps to the application entry point
@@ -128,9 +137,9 @@ int load_firmware_by_path(const char *path)
     text_directory_ui_set_status("Loading app...");
 
     // Attempt to load the application from the SD card
-    bool load_success = load_application_from_uf2(path);
+    bootloader_error_t load_err = load_application_from_uf2(path);
 
-    if (load_success)
+    if (load_err == ERR_SUCCESS)
     {
         text_directory_ui_set_status("Launching app...");
         DEBUG_PRINT("launching app\n");
@@ -140,10 +149,10 @@ int load_firmware_by_path(const char *path)
     }
     else
     {
-        text_directory_ui_set_status("ERR: No valid app");
-        DEBUG_PRINT("no valid app, halting\n");
+        display_error(load_err);
+        DEBUG_PRINT("Failed to load app: %s\n", get_error_message(load_err));
 
-        sleep_ms(2000);
+        sleep_ms(3000);
 
         // Trigger a watchdog reboot
         watchdog_reboot(0, 0, 0);
@@ -172,8 +181,7 @@ void final_selection_callback(const char *path)
     if (path_len < ext_len || strcmp(path + path_len - ext_len, extension) != 0)
     {
         DEBUG_PRINT("not a uf2: %s\n", path);
-        snprintf(status_message, sizeof(status_message), "ERR: File must be .uf2");
-        text_directory_ui_set_status(status_message);
+        display_error(ERR_UF2_INVALID_MAGIC);  // Using this as "wrong file type" error
         return;
     }
 
@@ -275,11 +283,11 @@ int main()
     sleep_ms(1500); // Wait for card to stabilize
 
     // Initialize filesystem
-    if (!fs_init())
-    {
-        text_directory_ui_set_status("Failed to mount SD card!");
-        DEBUG_PRINT("Failed to mount SD card\n");
-        sleep_ms(2000);
+    bootloader_error_t fs_err = fs_mount_init();
+    if (fs_err != ERR_SUCCESS) {
+        handle_error(fs_err);
+        // If we get here, error wasn't automatically handled
+        sleep_ms(3000);
         watchdog_reboot(0, 0, 0);
     }
 

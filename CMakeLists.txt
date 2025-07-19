@@ -64,6 +64,7 @@ add_executable(picocalc_sd_boot
     bootloader/src/key_event.c
     bootloader/src/text_directory_ui.c
     bootloader/src/ff_minimal_unicode.c
+    bootloader/src/error_handler.c
 )
 
 # Only use custom boot2 for RP2040, use SDK default for RP2350

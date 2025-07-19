@@ -34,12 +34,13 @@
 #include <dirent.h>
 
 #include "proginfo.h"
+#include "error_codes.h"
 
 #define VERSION "v1.2"
 
 // External functions for SD card handling
 extern bool sd_card_inserted(void);
-extern bool fs_init(void);
+extern bootloader_error_t fs_mount_init(void);
 
 // UI Layout Constants
 #define UI_WIDTH 280
@@ -290,7 +291,7 @@ static void ui_draw_path_header(uint8_t nosd)
 {
     char path_header[300];
 	if(nosd) {
-	  snprintf(path_header, sizeof(path_header), "Error: SD card not found");
+	  snprintf(path_header, sizeof(path_header), "Error %d: %s", ERR_SD_NO_CARD, get_error_message(ERR_SD_NO_CARD));
 	}else{
 	  snprintf(path_header, sizeof(path_header), "SD Card: %s", current_path);
 	}
@@ -648,7 +649,7 @@ void text_directory_ui_run(void)
         }
         // Check for SD card removal during runtime
         if (!sd_card_inserted()) {
-            text_directory_ui_set_status("SD card removed. Please reinsert.");
+            display_error(ERR_SD_NO_CARD);
             text_directory_ui_update_header(!status_flag);
             text_directory_ui_update_title();
             ui_clear_directory_list();
@@ -670,9 +671,10 @@ void text_directory_ui_run(void)
 
             // Once reinserted, update the UI and reinitialize filesystem
             text_directory_ui_set_status("SD card detected. Remounting...");
-            if (!fs_init()) {
-                text_directory_ui_set_status("Failed to remount SD card!");
-                sleep_ms(2000);
+            bootloader_error_t remount_err = fs_mount_init();
+            if (remount_err != ERR_SUCCESS) {
+                display_error(remount_err);
+                sleep_ms(3000);
                 watchdog_reboot(0, 0, 0);
             }
 

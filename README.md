@@ -28,27 +28,47 @@ To build the bootloader, you will need the Pico SDK and a GCC ARM toolchain.
 
 2.  **Create a build directory:**
     ```bash
-    cd src
     mkdir build && cd build
     ```
 
 3.  **Configure the build for your target platform:**
 
-    *   **For RP2040 (Pico):**
+    *   **For PicoCalc (RP2040-based):**
         ```bash
-        cmake -D PICO_SDK_PATH=/path/to/pico-sdk ..
+        cmake -DPICO_BOARD=picocalc ..
         ```
 
-    *   **For RP2350 (Pico 2 W):**
+    *   **For standard Pico (RP2040):**
         ```bash
-        cmake -D PICO_SDK_PATH=/path/to/pico-sdk -D BUILD_PICO2=ON ..
+        cmake -DPICO_BOARD=pico ..
+        ```
+
+    *   **For Pico W (RP2040 with wireless):**
+        ```bash
+        cmake -DPICO_BOARD=pico_w ..
+        ```
+
+    *   **For Pico 2 W (RP2350):**
+        ```bash
+        cmake -DPICO_BOARD=pico2_w ..
         ```
 
 4.  **Build the bootloader:**
     ```bash
-    make
+    cmake --build . -j$(nproc)
     ```
-    The compiled `.uf2` file will be located in the `src/build/` directory.
+    The compiled `.uf2` file will be located in the `build/` directory.
+
+### PicoCalc-Specific Notes
+
+The PicoCalc board definition includes all the specific pin configurations for:
+- I2C keyboard on I2C1 (SDA: GPIO6, SCL: GPIO7, Address: 0x1F)
+- SPI LCD display on SPI1 (320x320 ILI9488)
+- SD card on SPI0 with card detect on GPIO22
+- Audio output pins on GPIO27/28
+- Control buttons on GPIO2/3
+
+Building with `-DPICO_BOARD=picocalc` automatically configures all these peripherals correctly.
 
 ## Technical Implementation
 

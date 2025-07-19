@@ -7,6 +7,7 @@
 #define TEXT_DIRECTORY_UI_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 #define ITEMS_PER_PAGE 16
 #define FONT_HEIGHT 12
