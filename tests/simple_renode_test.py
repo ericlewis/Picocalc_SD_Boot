@@ -18,10 +18,11 @@ def test_bootloader_startup():
     elf_path = os.path.abspath('build/picocalc_sd_boot.elf')
     
     # Create a simple Renode script
+    platform_path = os.path.join(os.path.dirname(__file__), 'platforms/rp2040_basic.repl')
     renode_script = f"""
 # Create machine
 mach create "pico"
-machine LoadPlatformDescription @platforms/boards/raspberryPi_pico-rp2040.repl
+machine LoadPlatformDescription @{platform_path}
 
 # Load bootloader ELF
 sysbus LoadELF @{elf_path}
@@ -123,8 +124,8 @@ def test_multiple_boards():
     elf_path = os.path.abspath('build/picocalc_sd_boot.elf')
     
     boards = {
-        "pico": "platforms/boards/raspberryPi_pico-rp2040.repl",
-        "pico2": "platforms/boards/raspberryPi_pico2-rp2350.repl"
+        "pico": os.path.join(os.path.dirname(__file__), "platforms/rp2040_basic.repl"),
+        "pico2": os.path.join(os.path.dirname(__file__), "platforms/rp2350_basic.repl")
     }
     
     results = {}

@@ -8,7 +8,7 @@ machine LoadPlatformDescription @${CURDIR}/platforms/rp2040_basic.repl
 cpu0 IsHalted false
 
 # Load the bootloader binary if provided
-$bin?=@${CURDIR}/../build/bootloader/picocalc_sd_boot.elf
+$bin?=@${CURDIR}/../build/picocalc_sd_boot.elf
 sysbus LoadELF $bin
 
 # Configure UART for bootloader output
@@ -22,8 +22,20 @@ sysbus:
         Tag <0x400D0000 0x4> "SYSCFG"
         Tag <0x50110000 0x1000> "USB"
         Tag <0x50000000 0x1000> "DMA"
-        Tag <0x40014000 0x1000> "GPIO0"
-        Tag <0x40018000 0x1000> "GPIO1"
+
+# Log access to important regions
+python """
+def log_access(cpu, pc, addr, size, isWrite):
+    if addr >= 0x40058000 and addr < 0x40059000:
+        print(f"Watchdog access at PC=0x{pc:08x}: {'Write' if isWrite else 'Read'} addr=0x{addr:08x}")
+    elif addr >= 0x50110000 and addr < 0x50111000:
+        print(f"USB access at PC=0x{pc:08x}: {'Write' if isWrite else 'Read'} addr=0x{addr:08x}")
+
+sysbus.cpu0.SetHookAtMemoryAccess(log_access, 0x40058000, 0x1000)
+sysbus.cpu0.SetHookAtMemoryAccess(log_access, 0x50110000, 0x1000)
+"""
 
 # Set initial PC to bootloader entry point
-cpu0 PC 0x10000000 
+cpu0 PC 0x10000000
+
+echo "Simplified RP2040 test ready. Use 'start' to begin simulation." 

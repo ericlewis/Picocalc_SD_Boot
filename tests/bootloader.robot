@@ -27,7 +27,6 @@ Setup
 Create Machine RP2040
     [Arguments]    ${name}=rp2040
     Execute Command    include @${CURDIR}/rp2040.resc
-    Execute Command    machine LoadPlatformDescriptionFromString "cpu: CPU.CortexM @ sysbus { cpuType: \\"cortex-m0plus\\" }"
     
 Load Bootloader
     [Arguments]    ${binary}=${BOOTLOADER_BIN}

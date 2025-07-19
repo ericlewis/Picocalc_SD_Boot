@@ -1,6 +1,6 @@
 # Simple test script for Picocalc SD Boot
 mach create "pico"
-machine LoadPlatformDescription @platforms/boards/raspberryPi_pico-rp2040.repl
+machine LoadPlatformDescription @${CURDIR}/platforms/rp2040_basic.repl
 
 # Load bootloader ELF
 sysbus LoadELF @/Users/ericlewis/Developer/Picocalc_SD_Boot/build/picocalc_sd_boot.elf

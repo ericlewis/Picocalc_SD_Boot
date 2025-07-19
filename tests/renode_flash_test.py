@@ -23,8 +23,8 @@ class RenodeBootloaderTest:
         
         # Platform descriptions for different boards
         platforms = {
-            "pico": "platforms/boards/raspberryPi_pico-rp2040.repl",
-            "pico2": "platforms/boards/raspberryPi_pico2-rp2350.repl"
+            "pico": os.path.join(os.path.dirname(__file__), "platforms/rp2040_basic.repl"),
+            "pico2": os.path.join(os.path.dirname(__file__), "platforms/rp2350_basic.repl")
         }
         
         script = f"""
