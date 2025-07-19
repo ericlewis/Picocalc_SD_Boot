@@ -1,7 +1,5 @@
 // Raspberry Pi Pico (RP2040) Platform Description for Renode
 
-using "peripherals/resets.repl"
-
 flash: Memory.MappedMemory @ sysbus 0x10000000
     size: 0x1000000  // 16MB flash
 

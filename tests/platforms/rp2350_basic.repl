@@ -2,8 +2,6 @@
 // NOTE: This is a simplified model based on the RP2040.
 // Renode does not have full, dedicated RP2350 support yet.
 
-using "peripherals/resets.repl"
-
 flash: Memory.MappedMemory @ sysbus 0x10000000
     size: 0x1000000  // 16MB flash
 
