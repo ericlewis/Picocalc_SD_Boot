@@ -2,6 +2,7 @@
 Library           OperatingSystem
 Library           Collections
 Library           String
+Library           Remote    http://localhost:${RENODE_PORT:-9999}
 Suite Setup       Setup
 Suite Teardown    Teardown
 Test Setup        Reset Emulation
@@ -67,6 +68,14 @@ Verify Flash Contents
 Test Teardown
     ${log}=    Execute Command    sysbus.uart0 GetTransmittedData
     Log    UART Output:\n${log}
+
+Teardown
+    [Documentation]    Suite teardown - cleanup
+    Log    Test suite completed
+
+Reset Emulation
+    [Documentation]    Reset the emulation state
+    Execute Command    machine Reset
 
 *** Test Cases ***
 Test Power On Boot

@@ -148,7 +148,7 @@ jobs:
         sudo apt-get update
         # Install only what we need for headless Renode operation
         sudo apt-get install -y mono-complete libmono-system-windows-forms4.0-cil
-        pip install robotframework psutil
+        pip install robotframework robotremoteserver psutil
         
     - name: Install Renode
       run: |
@@ -183,8 +183,13 @@ jobs:
         export RENODE_OPTS="--disable-gui"
         echo "Renode version:"
         renode --version
+        # Start Renode robot server in background
+        renode --disable-gui -P 9999 --robot-server-port 9999 &
+        RENODE_PID=$!
+        sleep 5  # Give server time to start
         cd tests
-        robot --outputdir ../test-artifacts bootloader.robot || echo "Tests failed but continuing"
+        robot --variable RENODE_PORT:9999 --outputdir ../test-artifacts bootloader.robot || echo "Tests failed but continuing"
+        kill $RENODE_PID || true
       env:
         BOOTLOADER_BOARD: ${{ matrix.board }}
         
