@@ -19,7 +19,8 @@ uart0: UART.PL011 @ sysbus 0x40034000
     -> nvic0@20
 
 // Timer using generic Cortex-M SysTick
-systick: Timers.CortexMSysTick @ sysbus 0xE000E010
+systick: CPU.ARMv7M_SysTick @ sysbus 0xE000E010
+    parentCPU: cpu0
     -> nvic0@15
 
 // Generic SPI controllers
