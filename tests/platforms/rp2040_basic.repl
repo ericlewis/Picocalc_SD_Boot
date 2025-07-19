@@ -46,20 +46,5 @@ xosc: Miscellaneous.RP2040_XOSC @ sysbus 0x40024000
 
 rosc: Miscellaneous.RP2040_ROSC @ sysbus 0x40060000
 
-resets: Resets @ sysbus 0x4000c000
-    Reset(p: uart0, b: 22)
-    Reset(p: spi0, b: 16)
-    Reset(p: spi1, b: 17)
-    Reset(p: pll_sys, b: 12)
-    Reset(p: pll_usb, b: 13)
-    Reset(p: pads_qspi, b: 9)
-    Reset(p: pads_bank0, b: 8)
-    Reset(p: jtag, b: 7)
-    Reset(p: io_qspi, b: 6)
-    Reset(p: io_bank0, b: 5)
-    Reset(p: busctrl, b: 2)
-
-pads_bank0: GPIOPort.RP2040_Pads @ sysbus 0x4001c000
-pads_qspi: GPIOPort.RP2040_Pads @ sysbus 0x40020000
-busctrl: Miscellaneous.RP2040_BUSCTRL @ sysbus 0x40030000
-jtag: Miscellaneous.RP2040_JTAG @ sysbus 0x40064000 
+resets: Memory.MappedMemory @ sysbus 0x4000c000
+    size: 0x1000 
