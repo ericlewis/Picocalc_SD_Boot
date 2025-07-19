@@ -1,0 +1,259 @@
+/* Based on GCC ARM embedded samples.
+   Defines the following symbols for use by code:
+    __exidx_start
+    __exidx_end
+    __etext
+    __data_start__
+    __preinit_array_start
+    __preinit_array_end
+    __init_array_start
+    __init_array_end
+    __fini_array_start
+    __fini_array_end
+    __data_end__
+    __bss_start__
+    __bss_end__
+    __end__
+    end
+    __HeapLimit
+    __StackLimit
+    __StackTop
+    __stack (== StackTop)
+*/
+
+_flash_origin = 0x10000000;
+_flash_size = 4m;
+
+_bootloader_app_size = 256k;
+
+MEMORY
+{
+    /* boot_stage2 resides at the beginning, while sd_boot executable
+        takes up 256 kB at the end of the flash
+    */
+    BOOT2(rx) : ORIGIN = _flash_origin, LENGTH = 256
+    FLASH(rx) : ORIGIN = (_flash_origin + _flash_size) - _bootloader_app_size, LENGTH = _bootloader_app_size - 8
+    FLASH1(rx) : ORIGIN = (_flash_origin + _flash_size) - 8, LENGTH = 8
+    RAM(rwx) : ORIGIN =  0x20000000, LENGTH = 512k
+    SCRATCH_X(rwx) : ORIGIN = 0x20080000, LENGTH = 4k
+    SCRATCH_Y(rwx) : ORIGIN = 0x20081000, LENGTH = 4k
+}
+
+ENTRY(_entry_point)
+
+SECTIONS
+{
+    /* Second stage bootloader is prepended to the image. It must be 256 bytes big
+       and checksummed. It is usually built by the boot_stage2 target
+       in the Raspberry Pi Pico SDK
+    */
+
+    .flash_begin : {
+        __flash_binary_start = .;
+    } > BOOT2
+
+    .boot2 : {
+        __boot2_start__ = .;
+        KEEP (*(.boot2))
+        __boot2_end__ = .;
+    } > BOOT2
+
+    ASSERT(__boot2_end__ - __boot2_start__ == 256,
+        "ERROR: Pico second stage bootloader must be 256 bytes in size")
+
+    .text : {
+        __vector_start = .;
+        __logical_binary_start = .;
+        KEEP (*(.vectors))
+        KEEP (*(.binary_info_header))
+        __binary_info_header_end = .;
+        
+        /* Machine inspectable binary information */
+        . = ALIGN(4);
+        __binary_info_start = .;
+        KEEP(*(.binary_info.keep.*))
+        *(.binary_info.*)
+        __binary_info_end = .;
+        . = ALIGN(4);
+        
+        KEEP (*(.reset))
+        *(.init)
+        *(.text*)
+        *(.fini)
+        /* Pull all c'tors into .text */
+        *crtbegin.o(.ctors)
+        *crtbegin?.o(.ctors)
+        *(EXCLUDE_FILE(*crtend?.o *crtend.o) .ctors)
+        *(SORT(.ctors.*))
+        *(.ctors)
+        /* Followed by destructors */
+        *crtbegin.o(.dtors)
+        *crtbegin?.o(.dtors)
+        *(EXCLUDE_FILE(*crtend?.o *crtend.o) .dtors)
+        *(SORT(.dtors.*))
+        *(.dtors)
+
+        *(.eh_frame*)
+        . = ALIGN(4);
+    } > FLASH
+
+    .rodata : {
+        *(.rodata*)
+        . = ALIGN(4);
+        *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.flashdata*)))
+        . = ALIGN(4);
+    } > FLASH
+
+    .ARM.extab :
+    {
+        *(.ARM.extab* .gnu.linkonce.armextab.*)
+    } > FLASH
+
+    __exidx_start = .;
+    .ARM.exidx :
+    {
+        *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+    } > FLASH
+    __exidx_end = .;
+
+    /* End of .text-type sections */
+    __etext = .;
+
+   .ram_vector_table (NOLOAD): {
+        *(.ram_vector_table)
+    } > RAM
+
+    .data : {
+        __data_start__ = .;
+        *(vtable)
+
+        *(.time_critical*)
+
+        . = ALIGN(4);
+        *(.data*)
+
+        . = ALIGN(4);
+        *(.after_data.*)
+        . = ALIGN(4);
+        /* preinit data */
+        PROVIDE_HIDDEN (__mutex_array_start = .);
+        KEEP(*(SORT(.mutex_array.*)))
+        KEEP(*(.mutex_array))
+        PROVIDE_HIDDEN (__mutex_array_end = .);
+
+        . = ALIGN(4);
+        /* preinit data */
+        PROVIDE_HIDDEN (__preinit_array_start = .);
+        KEEP(*(SORT(.preinit_array.*)))
+        KEEP(*(.preinit_array))
+        PROVIDE_HIDDEN (__preinit_array_end = .);
+
+        . = ALIGN(4);
+        /* init data */
+        PROVIDE_HIDDEN (__init_array_start = .);
+        KEEP(*(SORT(.init_array.*)))
+        KEEP(*(.init_array))
+        PROVIDE_HIDDEN (__init_array_end = .);
+
+        . = ALIGN(4);
+        /* finit data */
+        PROVIDE_HIDDEN (__fini_array_start = .);
+        *(SORT(.fini_array.*))
+        *(.fini_array)
+        PROVIDE_HIDDEN (__fini_array_end = .);
+
+        *(.jcr)
+        . = ALIGN(4);
+        /* All data end */
+        __data_end__ = .;
+    } > RAM AT> FLASH
+
+    .sdboot.prog_info : {
+        /* Align to 4 KB sector boundary. And consume exactly one sector  */
+        . = ALIGN(4096);
+        KEEP(*(.sdboot.prog_info*))
+        . = ALIGN(4096);
+    } > FLASH
+
+    /* Provide __flash_binary_end for pico-sdk binary info system */
+    .flash_end : {
+        PROVIDE(__flash_binary_end = .);
+    } > FLASH
+
+    /* save start address at the end of flash so boot2 can find it */
+    .bootloader_start :
+    {
+        LONG(__logical_binary_start)
+    } > FLASH1
+
+    .uninitialized_data (NOLOAD): {
+        . = ALIGN(4);
+        *(.uninitialized_data*)
+    } > RAM
+
+    /* Start and end symbols must be word-aligned */
+    .scratch_x : {
+        __scratch_x_start__ = .;
+        *(.scratch_x.*)
+        . = ALIGN(4);
+        __scratch_x_end__ = .;
+    } > SCRATCH_X AT > FLASH
+    __scratch_x_source__ = LOADADDR(.scratch_x);
+
+    .scratch_y : {
+        __scratch_y_start__ = .;
+        *(.scratch_y.*)
+        . = ALIGN(4);
+        __scratch_y_end__ = .;
+    } > SCRATCH_Y AT > FLASH
+    __scratch_y_source__ = LOADADDR(.scratch_y);
+
+    .bss  : {
+        . = ALIGN(4);
+        __bss_start__ = .;
+        *(SORT_BY_ALIGNMENT(SORT_BY_NAME(.bss*)))
+        *(COMMON)
+        . = ALIGN(4);
+        __bss_end__ = .;
+    } > RAM
+
+    .heap (NOLOAD):
+    {
+        __end__ = .;
+        end = __end__;
+        KEEP(*(.heap*))
+        __HeapLimit = .;
+    } > RAM
+
+    /* .stack*_dummy section doesn't contains any symbols. It is only
+     * used for linker to calculate size of stack sections, and assign
+     * values to stack symbols later
+     *
+     * stack1 section may be empty/missing if platform_launch_core1 is not used */
+
+    /* by default we put core 0 stack at the end of scratch Y, so that if core 1
+     * stack is not used then all of SCRATCH_X is free.
+     */
+    .stack1_dummy (NOLOAD):
+    {
+        *(.stack1*)
+    } > SCRATCH_X
+    .stack_dummy (NOLOAD):
+    {
+        KEEP(*(.stack*))
+    } > SCRATCH_Y
+
+    /* stack limit is poorly named, but historically is maximum heap ptr */
+    __StackLimit = ORIGIN(RAM) + LENGTH(RAM);
+    __StackOneTop = ORIGIN(SCRATCH_X) + LENGTH(SCRATCH_X);
+    __StackTop = ORIGIN(SCRATCH_Y) + LENGTH(SCRATCH_Y);
+    __StackOneBottom = __StackOneTop - SIZEOF(.stack1_dummy);
+    __StackBottom = __StackTop - SIZEOF(.stack_dummy);
+    PROVIDE(__stack = __StackTop);
+
+    /* Check if data + heap + stack exceeds RAM limit */
+    ASSERT(__StackLimit >= __HeapLimit, "region RAM overflowed")
+
+    /* Remove binary info assertion for high-memory loader */
+    /* ASSERT( __binary_info_header_end - __logical_binary_start <= 256, "Binary info must be in first 256 bytes of the binary") */
+} 

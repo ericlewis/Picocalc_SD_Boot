@@ -1,0 +1,18 @@
+# PicoCalc Boot Configuration File
+# Copy this file to the root of your SD card as 'boot.conf'
+
+# Boot timeout in seconds (0 = no timeout, max 30)
+timeout=5
+
+# Default boot option:
+# 0 = Boot last application from flash
+# 1 = Select firmware from SD card
+# 2 = Enter USB boot mode
+default=0
+
+# Show countdown timer (1 = yes, 0 = no)
+show_countdown=1
+
+# Default firmware file to load from SD (if default=1)
+# Path is relative to /firmware directory
+default_firmware=my_app.uf2
