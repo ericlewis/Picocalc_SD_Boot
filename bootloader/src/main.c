@@ -37,6 +37,7 @@
 #include "uf2.h"
 #include "atu.h"
 #include "error_codes.h"
+#include "auto_boot.h"
 
 
 // Vector and RAM offset
@@ -229,33 +230,47 @@ int main()
     gpio_pull_up(SD_DET_PIN); // Enable pull-up resistor
 
     keypad_init();
+    lcd_init();
+    lcd_clear();
 
     // Check for recovery mode: If prog_info indicates incomplete flash, recover
-    int bootmode;
     volatile prog_info_t const *prog_info = get_prog_info();
     if (prog_info->prog_addr != 0 && prog_info->size == 0xFFFFFFFF) {
         // Size of 0xFFFFFFFF indicates incomplete flash operation
         DEBUG_PRINT("Incomplete flash detected, entering recovery mode\n");
         clear_prog_info();
-        bootmode = KEY_ARROW_UP; // Force SD card boot
-    } else {
-        // Check bootmode now: 0=default, 1=sdcard, 2=fwupdate
-        bootmode = read_bootmode();
+        // Force SD card boot menu
+        goto sd_boot_menu;
     }
-    DEBUG_PRINT("bootmode = %d\n", bootmode);
-    switch(bootmode) {
-      case KEY_ARROW_UP:
-        // BOOTMODE_SDCARD
-        break;
-      case KEY_ARROW_DOWN:
-        // BOOTMODE_FWUPDATE
-        boot_fwupdate();
-        break;
-      default:
-        // BOOTMODE_DEFAULT
-        launch_application();
-        break;
+
+    // Initialize auto-boot system (loads config if SD card available)
+    if (sd_card_inserted()) {
+        bootloader_error_t fs_err = fs_mount_init();
+        if (fs_err == ERR_SUCCESS) {
+            auto_boot_init();
+        }
     }
+
+    // Run auto-boot menu
+    boot_option_t boot_choice = auto_boot_menu_run();
+    
+    DEBUG_PRINT("Boot choice: %d\n", boot_choice);
+    
+    switch(boot_choice) {
+        case BOOT_LAST_APP:
+            launch_application();
+            break;
+            
+        case BOOT_USB_MODE:
+            boot_fwupdate();
+            break;
+            
+        case BOOT_SD_FIRMWARE:
+            // Continue to SD card boot
+            break;
+    }
+
+sd_boot_menu:
 
     // BEGIN SDCARD BOOT
 

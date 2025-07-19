@@ -25,9 +25,6 @@ cd "${PROJECT_ROOT}"
 mkdir -p build_tests
 cd build_tests
 
-# Copy the standalone CMakeLists.txt for tests
-cp ../tests/CMakeLists_standalone.txt ../tests/CMakeLists.txt
-
 # Configure for host build (not cross-compilation)
 echo "Configuring tests..."
 cmake ../tests \

@@ -35,6 +35,7 @@
 
 #include "proginfo.h"
 #include "error_codes.h"
+#include "bootloader_update.h"
 
 #define VERSION "v1.2"
 
@@ -64,6 +65,7 @@ enum entry_type_e {
     ENTRY_IS_FILE,
     ENTRY_IS_DIR,
     ENTRY_IS_LAST_APP,
+    ENTRY_IS_BOOTLOADER_UPDATE,
 };
 
 // Data structure for directory entries
@@ -138,6 +140,10 @@ static void format_file_size(off_t size, int type, char *buf, size_t buf_size)
     else if (type == ENTRY_IS_DIR)
     {
         snprintf(buf, buf_size, "DIR");
+    }
+    else if (type == ENTRY_IS_BOOTLOADER_UPDATE)
+    {
+        snprintf(buf, buf_size, "BL UPD");
     }
     else if (size >= 1024 * 1024)
     {
@@ -214,7 +220,11 @@ static void load_directory(const char *path)
     {
         if (strcmp(ent->d_name, ".") == 0 || strcmp(ent->d_name, "..") == 0)
             continue;
-        if( has_suffix(ent->d_name,".uf2") == false)
+        // Check for bootloader update files (.bup) or regular firmware (.uf2)
+        bool is_bootloader_update = has_suffix(ent->d_name, ".bup");
+        bool is_firmware = has_suffix(ent->d_name, ".uf2");
+        
+        if (!is_bootloader_update && !is_firmware)
             continue;
         strlcpy(entries[entry_count].name, ent->d_name, sizeof(entries[entry_count].name));
 
@@ -225,7 +235,13 @@ static void load_directory(const char *path)
         // Determine if the entry is a directory and get file size
         if (ent->d_type != DT_UNKNOWN)
         {
-            entries[entry_count].type = (ent->d_type == DT_DIR) ? ENTRY_IS_DIR : ENTRY_IS_FILE;
+            if (ent->d_type == DT_DIR) {
+                entries[entry_count].type = ENTRY_IS_DIR;
+            } else if (has_suffix(ent->d_name, ".bup")) {
+                entries[entry_count].type = ENTRY_IS_BOOTLOADER_UPDATE;
+            } else {
+                entries[entry_count].type = ENTRY_IS_FILE;
+            }
 
             // Get file size using stat even if we know the type from d_type
             struct stat statbuf;
@@ -528,6 +544,51 @@ void process_key_event(int key)
                         final_callback(NULL);
                     }
                     break;
+                case ENTRY_IS_BOOTLOADER_UPDATE: {
+                    // Handle bootloader update
+                    char full_path[512];
+                    snprintf(full_path, sizeof(full_path), "%s/%s", current_path, entries[selected_index].name);
+                    
+                    // Show confirmation dialog
+                    lcd_clear();
+                    lcd_set_cursor(50, 100);
+                    lcd_print_string_color("Update Bootloader?", WHITE, BLACK);
+                    lcd_set_cursor(30, 130);
+                    lcd_print_string_color(entries[selected_index].name, YELLOW, BLACK);
+                    lcd_set_cursor(40, 160);
+                    lcd_print_string_color("ENTER=Yes, ESC=No", WHITE, BLACK);
+                    lcd_set_cursor(20, 190);
+                    lcd_print_string_color("WARNING: Do not power off!", RED, BLACK);
+                    
+                    // Wait for confirmation
+                    while (keypad_get_key() > 0); // Clear buffer
+                    int confirm_key = 0;
+                    while (confirm_key != '\n' && confirm_key != 0x1B) {
+                        confirm_key = keypad_get_key();
+                        sleep_ms(10);
+                    }
+                    
+                    if (confirm_key == '\n') {
+                        // User confirmed - perform update
+                        bootloader_error_t err = bootloader_update_execute(full_path, NULL);
+                        if (err != ERR_SUCCESS) {
+                            display_error(err);
+                            sleep_ms(3000);
+                        }
+                        // If we get here, update failed
+                    }
+                    
+                    // Cancelled or failed - redraw UI
+                    lcd_clear();
+                    // Redraw frame
+                    draw_rect_spi(UI_X - 2, UI_Y - 2, UI_X + UI_WIDTH + 1, UI_Y + UI_HEIGHT + 1, COLOR_FRAME);
+                    draw_rect_spi(UI_X - 1, UI_Y - 1, UI_X + UI_WIDTH, UI_Y + UI_HEIGHT, COLOR_BG);
+                    ui_draw_title();
+                    ui_draw_path_header(0);
+                    ui_draw_status_bar();
+                    ui_draw_directory_list();
+                    break;
+                }
                 default:
                     if (final_callback){
                         char final_selected[512];

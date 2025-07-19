@@ -48,6 +48,16 @@ static uint32_t crc32_calculate(const uint8_t *data, size_t size) {
     return ~crc;
 }
 
+// Pre-validation structure to track UF2 file integrity
+typedef struct {
+    uint32_t total_blocks;
+    uint32_t blocks_seen;
+    uint32_t min_addr;
+    uint32_t max_addr;
+    uint32_t payload_crc32;
+    bool has_valid_header;
+} uf2_validation_t;
+
 #ifdef DRY_RUN
 #define FLASH_ERASE(a1, a2) printf("Erase %x-%x\n", (a1), (a2))
 #define FLASH_PROG(a1, a2, a3) printf("Flash %d bytes to %x\n", (a3), XIP_BASE + (a1))
@@ -106,8 +116,125 @@ static inline int page_index(uint32_t addr)
   return ((addr - XIP_BASE) % FLASH_SECTOR_SIZE) / FLASH_PAGE_SIZE;
 }
 
+// Pre-validate UF2 file before flashing
+static bootloader_error_t pre_validate_uf2(const char* filename, uf2_validation_t* validation) {
+    FILE* fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        return ERR_UF2_FILE_NOT_FOUND;
+    }
+    
+    uint8_t block_buf[512];
+    struct uf2_block* block = (struct uf2_block*)block_buf;
+    
+    memset(validation, 0, sizeof(*validation));
+    validation->min_addr = 0xFFFFFFFF;
+    validation->payload_crc32 = 0xFFFFFFFF; // Initial CRC value
+    
+    // First pass: validate all blocks
+    while (fread(block_buf, sizeof(struct uf2_block), 1, fp) > 0) {
+        // Check magic numbers
+        if (block->magic_start0 != UF2_MAGIC_START0 || 
+            block->magic_start1 != UF2_MAGIC_START1 ||
+            block->magic_end != UF2_MAGIC_END) {
+            fclose(fp);
+            return ERR_UF2_INVALID_MAGIC;
+        }
+        
+        // Check family ID
+        if (block->flags & UF2_FLAG_FAMILY_ID_PRESENT) {
+#if PICO_RP2040
+            if (block->file_size != RP2040_FAMILY_ID) {
+                fclose(fp);
+                return ERR_UF2_WRONG_FAMILY;
+            }
+#elif PICO_RP2350
+            if (block->file_size != RP2350_ARM_S_FAMILY_ID &&
+                block->file_size != RP2350_RISCV_FAMILY_ID) {
+                fclose(fp);
+                return ERR_UF2_WRONG_FAMILY;
+            }
+#endif
+        }
+        
+        // Track block info
+        if (!validation->has_valid_header) {
+            validation->total_blocks = block->num_blocks;
+            validation->has_valid_header = true;
+        }
+        
+        // Verify consistent total blocks
+        if (block->num_blocks != validation->total_blocks) {
+            fclose(fp);
+            return ERR_UF2_INVALID_SIZE;
+        }
+        
+        // Check address bounds
+        if (block->target_addr < PROG_AREA_BEGIN || 
+            block->target_addr + block->payload_size > PROG_AREA_END) {
+            fclose(fp);
+            return ERR_UF2_INVALID_ADDR;
+        }
+        
+        // Check bootloader boundary
+        uint32_t bootloader_start = (uint32_t)&__logical_binary_start;
+        if (block->target_addr + block->payload_size > bootloader_start) {
+            fclose(fp);
+            return ERR_FLASH_BOOTLOADER_OVERWRITE;
+        }
+        
+        // Update address range
+        if (block->target_addr < validation->min_addr) {
+            validation->min_addr = block->target_addr;
+        }
+        if (block->target_addr + block->payload_size > validation->max_addr) {
+            validation->max_addr = block->target_addr + block->payload_size;
+        }
+        
+        // Update CRC32 with payload data
+        for (size_t i = 0; i < block->payload_size; i++) {
+            uint8_t byte = block->data[i];
+            int tbl_idx = validation->payload_crc32 ^ byte;
+            validation->payload_crc32 = crc32_table[tbl_idx & 0x0f] ^ (validation->payload_crc32 >> 4);
+            tbl_idx = validation->payload_crc32 ^ (byte >> 4);
+            validation->payload_crc32 = crc32_table[tbl_idx & 0x0f] ^ (validation->payload_crc32 >> 4);
+        }
+        
+        validation->blocks_seen++;
+    }
+    
+    fclose(fp);
+    
+    // Final validation checks
+    if (validation->blocks_seen == 0) {
+        return ERR_UF2_INVALID_SIZE;
+    }
+    
+    if (validation->blocks_seen != validation->total_blocks) {
+        return ERR_UF2_INVALID_SIZE;
+    }
+    
+    // Finalize CRC32
+    validation->payload_crc32 = ~validation->payload_crc32;
+    
+    return ERR_SUCCESS;
+}
+
 bootloader_error_t load_application_from_uf2(const char* filename)
 {
+  // Pre-validate the UF2 file before any flash operations
+  uf2_validation_t validation;
+  text_directory_ui_set_status("Validating firmware...");
+  
+  bootloader_error_t err = pre_validate_uf2(filename, &validation);
+  if (err != ERR_SUCCESS) {
+    DEBUG_PRINT("Pre-validation failed: %d\n", err);
+    return err;
+  }
+  
+  DEBUG_PRINT("UF2 validated: %d blocks, CRC32=0x%08x, addr range 0x%08x-0x%08x\n",
+              validation.blocks_seen, validation.payload_crc32,
+              validation.min_addr, validation.max_addr);
+  
   uint8_t* buf = _block_buf;
 
   volatile prog_info_t const* prog_info = get_prog_info();
@@ -222,6 +349,19 @@ bootloader_error_t load_application_from_uf2(const char* filename)
   {
     return ERR_UF2_VERIFY_FAILED;
   }
+
+  // Final verification: Calculate CRC32 of flashed data and compare with pre-validation
+  text_directory_ui_set_status("Verifying flash...");
+  uint32_t flash_crc = crc32_calculate((uint8_t*)(validation.min_addr), 
+                                       validation.max_addr - validation.min_addr);
+  
+  if (flash_crc != validation.payload_crc32) {
+    DEBUG_PRINT("Flash CRC mismatch! Expected: 0x%08x, Got: 0x%08x\n", 
+                validation.payload_crc32, flash_crc);
+    return ERR_UF2_VERIFY_FAILED;
+  }
+  
+  DEBUG_PRINT("Flash verification successful, CRC32: 0x%08x\n", flash_crc);
 
   set_prog_info(s.prog_addr + BOOT2_SIZE, s.num_blks * FLASH_PAGE_SIZE, strrchr(filename, '/') + 1);
 

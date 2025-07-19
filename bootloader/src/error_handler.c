@@ -30,6 +30,8 @@ static const error_info_t error_table[] = {
     {ERR_UF2_VERIFY_FAILED, "Flash verification failed", RECOVERY_RETRY, "Press R to retry flash"},
     {ERR_UF2_FILE_NOT_FOUND, "UF2 file not found", RECOVERY_NONE, "Check file exists on SD card"},
     {ERR_UF2_FILE_TOO_LARGE, "UF2 file too large", RECOVERY_NONE, "File exceeds available flash"},
+    {ERR_UF2_WRONG_FAMILY, "Wrong device family", RECOVERY_NONE, "Use correct firmware file"},
+    {ERR_UF2_TOO_LARGE, "File too large", RECOVERY_NONE, "File exceeds size limits"},
     
     // Flash errors
     {ERR_FLASH_ERASE_FAILED, "Flash erase failed", RECOVERY_REBOOT, "Press R to reboot"},
@@ -54,6 +56,7 @@ static const error_info_t error_table[] = {
     {ERR_I2C_COMM_FAILED, "I2C communication failed", RECOVERY_CHECK_CONNECTIONS, "Check I2C connections"},
     {ERR_SPI_COMM_FAILED, "SPI communication failed", RECOVERY_CHECK_CONNECTIONS, "Check SPI connections"},
     {ERR_GPIO_INIT_FAILED, "GPIO initialization failed", RECOVERY_REBOOT, "Press R to reboot"},
+    {ERR_LOW_BATTERY, "Battery too low", RECOVERY_POWER_CYCLE, "Charge device before updating"},
     
     // File system errors
     {ERR_FS_DIR_NOT_FOUND, "Directory not found", RECOVERY_NONE, "Check path"},
@@ -61,6 +64,16 @@ static const error_info_t error_table[] = {
     {ERR_FS_PATH_TOO_LONG, "Path too long", RECOVERY_NONE, "Use shorter path"},
     {ERR_FS_ACCESS_DENIED, "Access denied", RECOVERY_NONE, "Check permissions"},
     {ERR_FS_CORRUPTED, "Filesystem corrupted", RECOVERY_FORMAT_SD, "Press F to format"},
+    {ERR_FILE_NOT_FOUND, "File not found", RECOVERY_NONE, "Check file exists on SD"},
+    {ERR_FILE_READ_ERROR, "File read error", RECOVERY_RETRY, "Press R to retry"},
+    
+    // Bootloader update errors
+    {ERR_BOOTLOADER_NOT_FOUND, "Bootloader not detected", RECOVERY_ENTER_BOOTSEL, "Hold BOOTSEL and reset"},
+    {ERR_BOOTLOADER_UPDATE_INVALID, "Invalid bootloader update", RECOVERY_NONE, "Check update file integrity"},
+    {ERR_BOOTLOADER_UPDATE_WRONG_PLATFORM, "Wrong platform update", RECOVERY_NONE, "Use RP2040/RP2350 specific file"},
+    {ERR_BOOTLOADER_UPDATE_TOO_LARGE, "Update file too large", RECOVERY_NONE, "Bootloader exceeds size limit"},
+    {ERR_BOOTLOADER_UPDATE_CRC_FAIL, "Update CRC check failed", RECOVERY_RETRY, "Download update file again"},
+    {ERR_BOOTLOADER_UPDATE_VERSION_MISMATCH, "Version incompatible", RECOVERY_NONE, "Check version requirements"},
     
     // Unknown error
     {ERR_UNKNOWN, "Unknown error occurred", RECOVERY_REBOOT, "Press R to reboot"}

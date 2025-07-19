@@ -65,6 +65,8 @@ add_executable(picocalc_sd_boot
     bootloader/src/text_directory_ui.c
     bootloader/src/ff_minimal_unicode.c
     bootloader/src/error_handler.c
+    bootloader/src/auto_boot.c
+    bootloader/src/bootloader_update.c
 )
 
 # Only use custom boot2 for RP2040, use SDK default for RP2350
@@ -103,9 +105,10 @@ target_include_directories(picocalc_sd_boot PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/bootloader/libs
 )
 
-# Enable testing and add tests
-enable_testing()
-# TODO: Fix test build configuration for cross-compilation
-# add_subdirectory(tests)
+# Enable testing and add tests (build separately as host executables)
+# Tests should be built with: 
+# mkdir build_tests && cd build_tests
+# cmake ../tests -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug
+# make && ctest --output-on-failure
 
 pico_add_extra_outputs(picocalc_sd_boot) 

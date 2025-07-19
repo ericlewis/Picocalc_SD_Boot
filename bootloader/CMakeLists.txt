@@ -5,6 +5,8 @@ add_library(pico_boot
     src/bldetect.c
     src/key_event.c
     src/text_directory_ui.c
+    src/auto_boot.c
+    src/error_handler.c
 )
 
 # Add shared libraries
