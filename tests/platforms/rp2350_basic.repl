@@ -16,13 +16,13 @@ nvic0: IRQControllers.NVIC @ sysbus 0xE000E000
     -> cpu0@0
 
 // Using RP2040 peripherals as placeholders for now
-uart0: UART.RP2040_UART @ sysbus 0x40034000
+uart0: UART.PL011 @ sysbus 0x40034000
     -> nvic0@20
 
-spi0: SPI.RP2040_SPI @ sysbus 0x4003c000
+spi0: SPI.STM32SPI @ sysbus 0x4003c000
     -> nvic0@18
 
-spi1: SPI.RP2040_SPI @ sysbus 0x40040000
+spi1: SPI.STM32SPI @ sysbus 0x40040000
     -> nvic0@19
 
 gpio0: GPIOPort.RP2040_GPIO @ sysbus 0x40014000
